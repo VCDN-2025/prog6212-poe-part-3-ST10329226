@@ -1,0 +1,39 @@
+﻿@model IEnumerable<CMCS_Prototype.Models.Claim>
+
+@{
+    ViewData["Title"] = "Coordinator Dashboard";
+}
+
+<h2 class="mb-4">Programme Coordinator Dashboard</h2>
+<hr />
+
+<div class="row">
+    <div class="col-md-6 col-lg-4 mb-4">
+        <div class="card text-white bg-info shadow-sm">
+            <div class="card-body">
+                <h5 class="card-title">Claims to Review</h5>
+                <p class="card-text fs-3">...</p> @* Placeholder for claim count *@
+                <a asp-controller="Coordinator" asp-action="PendingClaims" class="stretched-link text-white">
+                    Review Now <i class="bi bi-arrow-right"></i>
+                </a>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-6 col-lg-4 mb-4">
+        <div class="card text-dark bg-light shadow-sm">
+            <div class="card-body">
+                <h5 class="card-title">Completed Claims</h5>
+                <p class="card-text fs-3">...</p>
+                <a href="#" class="stretched-link text-dark">View History</a>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        // Optional: Add logic here to fetch the number of pending claims 
+        // using an AJAX call to the Coordinator controller if desired.
+    </script>
+}

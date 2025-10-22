@@ -1,0 +1,55 @@
+﻿@model IEnumerable<CMCS_Prototype.Models.Claim>
+
+@{
+    ViewData["Title"] = "Lecturer Dashboard";
+}
+
+<h1>Welcome, Lecturer!</h1>
+<p>
+    <a asp-action="SubmitClaim" class="btn btn-primary">Submit New Claim</a>
+</p>
+
+<h2>Claim History</h2>
+
+@* FIX: Add a null check here to prevent the NullReferenceException *@
+@if (Model != null)
+{
+    <table class="table">
+        <thead>
+            <tr>
+                <th>@Html.DisplayNameFor(model => model.ClaimNumber)</th>
+                <th>@Html.DisplayNameFor(model => model.DateSubmitted)</th>
+                <th>@Html.DisplayNameFor(model => model.TotalHours)</th>
+                <th>@Html.DisplayNameFor(model => model.TotalAmount)</th>
+                <th>@Html.DisplayNameFor(model => model.Status)</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var item in Model)
+            {
+                <tr>
+                    <td>@Html.DisplayFor(modelItem => item.ClaimNumber)</td>
+                    <td>@Html.DisplayFor(modelItem => item.DateSubmitted)</td>
+                    <td>@Html.DisplayFor(modelItem => item.TotalHours)</td>
+                    <td>@Html.DisplayFor(modelItem => item.TotalAmount)</td>
+                    <td>
+                        <span class="badge
+                                    @(item.Status == "Pending" ? "bg-warning text-dark" :
+                                      item.Status == "Verified" ? "bg-info" :
+                                      item.Status == "Approved" ? "bg-success" : "bg-danger")">
+                    @Html.DisplayFor(modelItem => item.Status)
+                </span>
+            </td>
+            <td>
+                <a asp-action="ClaimDetails" asp-route-id="@item.ClaimID">View Details</a>
+            </td>
+        </tr>
+                }
+        </tbody>
+    </table>
+}
+else
+{
+    <p>No claims found for this lecturer.</p>
+}

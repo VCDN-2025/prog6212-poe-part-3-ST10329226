@@ -1,0 +1,105 @@
+is_global = true
+build_property.TargetFramework = net8.0
+build_property.TargetFramework = net8.0
+build_property.TargetPlatformMinVersion = 
+build_property.TargetPlatformMinVersion = 
+build_property.UsingMicrosoftNETSdkWeb = true
+build_property.UsingMicrosoftNETSdkWeb = true
+build_property.ProjectTypeGuids = 
+build_property.ProjectTypeGuids = 
+build_property.InvariantGlobalization = 
+build_property.InvariantGlobalization = 
+build_property.PlatformNeutralAssembly = 
+build_property.PlatformNeutralAssembly = 
+build_property.EnforceExtendedAnalyzerRules = 
+build_property.EnforceExtendedAnalyzerRules = 
+build_property._SupportedPlatformList = Linux,macOS,Windows
+build_property._SupportedPlatformList = Linux,macOS,Windows
+build_property.RootNamespace = CMCS_Prototype
+build_property.RootNamespace = CMCS_Prototype
+build_property.ProjectDir = C:\Users\goven\Desktop\prog sem 2 6212 2A\CMCS_Prototype\CMCS_Prototype\
+build_property.EnableComHosting = 
+build_property.EnableGeneratedComInterfaceComImportInterop = 
+build_property.RazorLangVersion = 8.0
+build_property.SupportLocalizedComponentNames = 
+build_property.GenerateRazorMetadataSourceChecksumAttributes = 
+build_property.MSBuildProjectDirectory = C:\Users\goven\Desktop\prog sem 2 6212 2A\CMCS_Prototype\CMCS_Prototype
+build_property._RazorSourceGeneratorDebug = 
+build_property.EffectiveAnalysisLevelStyle = 8.0
+build_property.EnableCodeStyleSeverity = 
+
+[C:/Users/goven/Desktop/prog sem 2 6212 2A/CMCS_Prototype/CMCS_Prototype/Views/Admin/Dashboard.cshtml]
+build_metadata.AdditionalFiles.TargetPath = Vmlld3NcQWRtaW5cRGFzaGJvYXJkLmNzaHRtbA==
+build_metadata.AdditionalFiles.CssScope = 
+
+[C:/Users/goven/Desktop/prog sem 2 6212 2A/CMCS_Prototype/CMCS_Prototype/Views/Coordinator/ClaimDetails.cshtml]
+build_metadata.AdditionalFiles.TargetPath = Vmlld3NcQ29vcmRpbmF0b3JcQ2xhaW1EZXRhaWxzLmNzaHRtbA==
+build_metadata.AdditionalFiles.CssScope = 
+
+[C:/Users/goven/Desktop/prog sem 2 6212 2A/CMCS_Prototype/CMCS_Prototype/Views/Coordinator/Dashboard.cshtml]
+build_metadata.AdditionalFiles.TargetPath = Vmlld3NcQ29vcmRpbmF0b3JcRGFzaGJvYXJkLmNzaHRtbA==
+build_metadata.AdditionalFiles.CssScope = 
+
+[C:/Users/goven/Desktop/prog sem 2 6212 2A/CMCS_Prototype/CMCS_Prototype/Views/Coordinator/PendingClaims.cshtml]
+build_metadata.AdditionalFiles.TargetPath = Vmlld3NcQ29vcmRpbmF0b3JcUGVuZGluZ0NsYWltcy5jc2h0bWw=
+build_metadata.AdditionalFiles.CssScope = 
+
+[C:/Users/goven/Desktop/prog sem 2 6212 2A/CMCS_Prototype/CMCS_Prototype/Views/Coordinator/_ViewImports.cshtml]
+build_metadata.AdditionalFiles.TargetPath = Vmlld3NcQ29vcmRpbmF0b3JcX1ZpZXdJbXBvcnRzLmNzaHRtbA==
+build_metadata.AdditionalFiles.CssScope = 
+
+[C:/Users/goven/Desktop/prog sem 2 6212 2A/CMCS_Prototype/CMCS_Prototype/Views/Home/Index.cshtml]
+build_metadata.AdditionalFiles.TargetPath = Vmlld3NcSG9tZVxJbmRleC5jc2h0bWw=
+build_metadata.AdditionalFiles.CssScope = 
+
+[C:/Users/goven/Desktop/prog sem 2 6212 2A/CMCS_Prototype/CMCS_Prototype/Views/Home/Privacy.cshtml]
+build_metadata.AdditionalFiles.TargetPath = Vmlld3NcSG9tZVxQcml2YWN5LmNzaHRtbA==
+build_metadata.AdditionalFiles.CssScope = 
+
+[C:/Users/goven/Desktop/prog sem 2 6212 2A/CMCS_Prototype/CMCS_Prototype/Views/Lecturer/ClaimDetails.cshtml]
+build_metadata.AdditionalFiles.TargetPath = Vmlld3NcTGVjdHVyZXJcQ2xhaW1EZXRhaWxzLmNzaHRtbA==
+build_metadata.AdditionalFiles.CssScope = 
+
+[C:/Users/goven/Desktop/prog sem 2 6212 2A/CMCS_Prototype/CMCS_Prototype/Views/Lecturer/Dashboard.cshtml]
+build_metadata.AdditionalFiles.TargetPath = Vmlld3NcTGVjdHVyZXJcRGFzaGJvYXJkLmNzaHRtbA==
+build_metadata.AdditionalFiles.CssScope = 
+
+[C:/Users/goven/Desktop/prog sem 2 6212 2A/CMCS_Prototype/CMCS_Prototype/Views/Lecturer/SubmitClaim.cshtml]
+build_metadata.AdditionalFiles.TargetPath = Vmlld3NcTGVjdHVyZXJcU3VibWl0Q2xhaW0uY3NodG1s
+build_metadata.AdditionalFiles.CssScope = 
+
+[C:/Users/goven/Desktop/prog sem 2 6212 2A/CMCS_Prototype/CMCS_Prototype/Views/Manager/Dashboard.cshtml]
+build_metadata.AdditionalFiles.TargetPath = Vmlld3NcTWFuYWdlclxEYXNoYm9hcmQuY3NodG1s
+build_metadata.AdditionalFiles.CssScope = 
+
+[C:/Users/goven/Desktop/prog sem 2 6212 2A/CMCS_Prototype/CMCS_Prototype/Views/Manager/PendingClaims.cshtml]
+build_metadata.AdditionalFiles.TargetPath = Vmlld3NcTWFuYWdlclxQZW5kaW5nQ2xhaW1zLmNzaHRtbA==
+build_metadata.AdditionalFiles.CssScope = 
+
+[C:/Users/goven/Desktop/prog sem 2 6212 2A/CMCS_Prototype/CMCS_Prototype/Views/Manager/_ViewImports.cshtml]
+build_metadata.AdditionalFiles.TargetPath = Vmlld3NcTWFuYWdlclxfVmlld0ltcG9ydHMuY3NodG1s
+build_metadata.AdditionalFiles.CssScope = 
+
+[C:/Users/goven/Desktop/prog sem 2 6212 2A/CMCS_Prototype/CMCS_Prototype/Views/Shared/ClaimDetails.cshtml]
+build_metadata.AdditionalFiles.TargetPath = Vmlld3NcU2hhcmVkXENsYWltRGV0YWlscy5jc2h0bWw=
+build_metadata.AdditionalFiles.CssScope = 
+
+[C:/Users/goven/Desktop/prog sem 2 6212 2A/CMCS_Prototype/CMCS_Prototype/Views/Shared/Error.cshtml]
+build_metadata.AdditionalFiles.TargetPath = Vmlld3NcU2hhcmVkXEVycm9yLmNzaHRtbA==
+build_metadata.AdditionalFiles.CssScope = 
+
+[C:/Users/goven/Desktop/prog sem 2 6212 2A/CMCS_Prototype/CMCS_Prototype/Views/Shared/_ValidationScriptsPartial.cshtml]
+build_metadata.AdditionalFiles.TargetPath = Vmlld3NcU2hhcmVkXF9WYWxpZGF0aW9uU2NyaXB0c1BhcnRpYWwuY3NodG1s
+build_metadata.AdditionalFiles.CssScope = 
+
+[C:/Users/goven/Desktop/prog sem 2 6212 2A/CMCS_Prototype/CMCS_Prototype/Views/_ViewImports.cshtml]
+build_metadata.AdditionalFiles.TargetPath = Vmlld3NcX1ZpZXdJbXBvcnRzLmNzaHRtbA==
+build_metadata.AdditionalFiles.CssScope = 
+
+[C:/Users/goven/Desktop/prog sem 2 6212 2A/CMCS_Prototype/CMCS_Prototype/Views/_ViewStart.cshtml]
+build_metadata.AdditionalFiles.TargetPath = Vmlld3NcX1ZpZXdTdGFydC5jc2h0bWw=
+build_metadata.AdditionalFiles.CssScope = 
+
+[C:/Users/goven/Desktop/prog sem 2 6212 2A/CMCS_Prototype/CMCS_Prototype/Views/Shared/_Layout.cshtml]
+build_metadata.AdditionalFiles.TargetPath = Vmlld3NcU2hhcmVkXF9MYXlvdXQuY3NodG1s
+build_metadata.AdditionalFiles.CssScope = b-cn0eumusnq

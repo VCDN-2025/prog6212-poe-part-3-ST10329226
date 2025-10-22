@@ -1,0 +1,103 @@
+﻿@model IEnumerable<CMCS_Prototype.Models.Claim>
+
+@{
+    ViewData["Title"] = "Pending Claims Verification";
+}
+
+<h2 class="mb-4">Academic Manager: Pending Claims Verification</h2>
+
+@if (!Model.Any())
+{
+    <div class="alert alert-success" role="alert">
+        🎉 All clear! There are no claims currently pending verification.
+    </div>
+}
+else
+{
+    <div class="table-responsive">
+        <table class="table table-hover table-striped">
+            <thead class="table-dark">
+                <tr>
+                    <th>Claim #</th>
+                    <th>Lecturer</th>
+                    <th>Date Submitted</th>
+                    <th>Total Hours (Est.)</th>
+                    <th>Status</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var claim in Model)
+                {
+                    <tr>
+                        <td>
+                            @Html.DisplayFor(modelItem => claim.ClaimNumber)
+                        </td>
+                        <td>
+                            @Html.DisplayFor(modelItem => claim.Lecturer.Name)
+                        </td>
+                        <td>
+                            @Html.DisplayFor(modelItem => claim.DateSubmitted)
+                        </td>
+                        <td>
+                            @* Note: TotalHours is currently 0 in prototype, this should be calculated *@
+                            @Html.DisplayFor(modelItem => claim.TotalHours)
+                        </td>
+                        <td>
+                            <span class="badge bg-warning text-dark">@Html.DisplayFor(modelItem => claim.Status)</span>
+                        </td>
+                        <td>
+                            <button class="btn btn-sm btn-info" onclick="viewClaimDetails('@claim.ClaimID')">View Details</button>
+
+                            @* Approve Form (Hidden, but functional POST) *@
+                            <form asp-controller="Manager" asp-action="Approve" asp-route-id="@claim.ClaimID" method="post" style="display:inline;" onsubmit="return confirm('Are you sure you want to APPROVE Claim @claim.ClaimNumber?');">
+                                <input type="hidden" name="ClaimID" value="@claim.ClaimID" />
+                                @Html.AntiForgeryToken()
+                                <button type="submit" class="btn btn-sm btn-success">Approve</button>
+                            </form>
+
+                            @* Reject Button (Uses JS to prompt for reason before submitting) *@
+                            <button class="btn btn-sm btn-danger" onclick="rejectClaim('@claim.ClaimID', '@claim.ClaimNumber')">Reject</button>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+}
+
+@section Scripts {
+    <script>
+        function viewClaimDetails(claimId) {
+            // TODO: Implement a dedicated Claim Details view later.
+            // For now, an alert shows the ID.
+            alert('Redirecting to full Claim Details for ID: ' + claimId);
+        }
+
+        function rejectClaim(claimId, claimNumber) {
+            // Prompt user for a rejection reason
+            var reason = prompt("Enter rejection reason for Claim " + claimNumber + ":");
+
+            if (reason) {
+                // Dynamically create a hidden form for rejection
+                var form = document.createElement('form');
+                form.method = 'post';
+                form.action = '/Manager/Reject/' + claimId;
+
+                // Add Anti-Forgery Token
+                var token = document.querySelector('input[name="__RequestVerificationToken"]').value;
+                form.innerHTML += '<input type="hidden" name="__RequestVerificationToken" value="' + token + '" />';
+
+                // Add ClaimID and Reason
+                form.innerHTML += '<input type="hidden" name="id" value="' + claimId + '" />';
+                form.innerHTML += '<input type="hidden" name="reason" value="' + reason + '" />';
+
+                // Append and submit the form
+                document.body.appendChild(form);
+                form.submit();
+            } else if (reason !== null) {
+                alert('Rejection cancelled or reason not provided.');
+            }
+        }
+    </script>
+}

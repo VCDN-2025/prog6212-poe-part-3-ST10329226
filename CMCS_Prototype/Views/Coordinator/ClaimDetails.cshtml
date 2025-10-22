@@ -1,0 +1,83 @@
+﻿@model CMCS_Prototype.Models.Claim
+
+@{
+    ViewData["Title"] = "Claim Details";
+}
+
+<h1>Claim Details: @Model.ClaimNumber</h1>
+
+<div>
+    <dl class="row">
+        <dt class="col-sm-3">Submitted By</dt>
+        <dd class="col-sm-9">@Model.Lecturer.Name (@Model.Lecturer.ContractorNumber)</dd>
+
+        <dt class="col-sm-3">Status</dt>
+        <dd class="col-sm-9">
+            <span class="badge @(Model.Status == "Pending" ? "bg-warning text-dark" : Model.Status == "Approved" ? "bg-success" : "bg-danger")">
+                @Model.Status
+            </span>
+        </dd>
+
+        <dt class="col-sm-3">Total Amount</dt>
+        <dd class="col-sm-9">@Model.TotalAmount.ToString("C")</dd>
+
+        <dt class="col-sm-3">Date Submitted</dt>
+        <dd class="col-sm-9">@Model.DateSubmitted.ToShortDateString()</dd>
+    </dl>
+
+    <hr />
+
+    <h2>Line Items</h2>
+    @if (Model.ClaimLineItems.Any())
+    {
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>Date</th>
+                    <th>Hours</th>
+                    <th>Rate</th>
+                    <th>Description</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var item in Model.ClaimLineItems)
+                {
+                    <tr>
+                        <td>@item.DateOfActivity.ToShortDateString()</td>
+                        <td>@item.Hours</td>
+                        <td>@item.RatePerHour.ToString("C")</td>
+                        <td>@item.ActivityDescription</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    }
+    else
+    {
+        <p>No line items submitted for this claim.</p>
+    }
+
+    <hr />
+
+    <h2>Supporting Documents</h2>
+    @if (Model.SupportingDocuments.Any())
+    {
+        <ul class="list-group">
+            @foreach (var doc in Model.SupportingDocuments)
+            {
+                <li class="list-group-item">
+                    @doc.FileName
+                    <a href="@doc.FilePath" target="_blank" class="float-end">Download/View</a>
+                </li>
+            }
+        </ul>
+    }
+    else
+    {
+        <p>No supporting documents uploaded.</p>
+    }
+</div>
+
+<div class="mt-4">
+    <a asp-action="Dashboard">Back to List</a>
+</div>

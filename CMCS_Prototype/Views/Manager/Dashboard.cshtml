@@ -1,0 +1,31 @@
+﻿@{
+    ViewData["Title"] = "Manager Dashboard";
+}
+
+<h2 class="mb-4">Welcome, Academic Manager!</h2>
+
+<div class="row">
+    <div class="col-md-6 mb-4">
+        <div class="card shadow-sm h-100">
+            <div class="card-body">
+                <h4 class="card-title text-primary">Pending Claims</h4>
+                <p class="card-text">View and verify all claims awaiting your approval.</p>
+                <a asp-controller="Manager" asp-action="PendingClaims" class="btn btn-primary">
+                    Go to Pending Claims
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-6 mb-4">
+        <div class="card shadow-sm h-100">
+            <div class="card-body">
+                <h4 class="card-title text-secondary">View History</h4>
+                <p class="card-text">Review claims previously approved or rejected by you.</p>
+                <a href="#" class="btn btn-secondary disabled">
+                    View History (Coming Soon)
+                </a>
+            </div>
+        </div>
+    </div>
+</div>

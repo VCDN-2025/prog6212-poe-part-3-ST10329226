@@ -1,0 +1,223 @@
+﻿@model CMCS_Prototype.Models.Claim
+
+@{
+    ViewData["Title"] = "Submit New Claim";
+}
+
+<div class="container py-4">
+    <div class="row">
+        <div class="col-12">
+            <h2 class="text-primary mb-4"><i class="bi bi-file-earmark-plus"></i> Submit New Claim</h2>
+        </div>
+    </div>
+
+    @* --- SUCCESS/ERROR MESSAGE DISPLAY --- *@
+    @if (TempData["SuccessMessage"] != null)
+    {
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+            <strong>Success!</strong> @TempData["SuccessMessage"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+    @if (TempData["ErrorMessage"] != null)
+    {
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            <strong>Error:</strong> @TempData["ErrorMessage"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+
+    <!-- CRITICAL: Must use enctype="multipart/form-data" for file upload -->
+    <form asp-action="SubmitClaim" method="post" enctype="multipart/form-data">
+        <div asp-validation-summary="ModelOnly" class="alert alert-danger"></div>
+
+        <!-- Hidden Fields for Rate and Status -->
+        @* CHANGED CURRENCY: Default rate is now 150.00 Rands *@
+        <input type="hidden" id="initialRate" value="150.00" />
+
+        <!-- ============================================= -->
+        <!-- 1. CLAIM HEADER DETAILS -->
+        <!-- ============================================= -->
+        <div class="card shadow mb-4">
+            <div class="card-header bg-light">
+                <h5 class="mb-0">Claim Header Information</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label asp-for="ClaimNumber" class="form-label"></label>
+                        <input asp-for="ClaimNumber" class="form-control" placeholder="e.g., LCT-AUG-2025" />
+                        <span asp-validation-for="ClaimNumber" class="text-danger"></span>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label for="RateDisplay" class="form-label">Contract Hourly Rate</label>
+                        @* CHANGED CURRENCY DISPLAY *@
+                        <input id="RateDisplay" value="R150.00" class="form-control" readonly />
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ============================================= -->
+        <!-- 2. CLAIM LINE ITEMS (DYNAMIC ROWS) -->
+        <!-- ============================================= -->
+        <div class="card shadow mb-4">
+            <div class="card-header bg-light d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">Claim Activities (Line Items)</h5>
+                <button type="button" class="btn btn-sm btn-primary" onclick="addLineItem()">
+                    <i class="bi bi-plus-circle"></i> Add Activity
+                </button>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-striped table-hover mb-0" id="lineItemsTable">
+                        <thead>
+                            <tr>
+                                <th style="width: 15%;">Date</th>
+                                <th style="width: 10%;">Hours</th>
+                                <th>Activity Description</th>
+                                <th style="width: 15%;" class="text-end">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <!-- Line items will be inserted here by JavaScript -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- ============================================= -->
+        <!-- 3. DOCUMENT UPLOAD AND TOTALS -->
+        <!-- ============================================= -->
+        <div class="row">
+            <!-- Totals Card -->
+            <div class="col-md-6">
+                <div class="card shadow mb-4">
+                    <div class="card-header bg-info text-white">
+                        <h5 class="mb-0">Claim Totals</h5>
+                    </div>
+                    <ul class="list-group list-group-flush">
+                        <li class="list-group-item d-flex justify-content-between">
+                            <strong>Total Hours Claimed:</strong>
+                            <span id="totalHoursDisplay" class="fw-bold">0.00</span>
+                            <input type="hidden" asp-for="TotalHours" id="TotalHoursInput" />
+                        </li>
+                        <li class="list-group-item d-flex justify-content-between">
+                            <strong>Total Amount (R):</strong>
+                            @* CHANGED CURRENCY DISPLAY *@
+                            <span id="totalAmountDisplay" class="fw-bold text-success">R0.00</span>
+                            <input type="hidden" asp-for="TotalAmount" id="TotalAmountInput" />
+                        </li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- Document Upload Card -->
+            <div class="col-md-6">
+                <div class="card shadow mb-4">
+                    <div class="card-header bg-light">
+                        <h5 class="mb-0">Supporting Document (e.g., Timesheet)</h5>
+                    </div>
+                    <div class="card-body">
+                        <label for="documentFile" class="form-label">Upload File (PDF/Word)</label>
+                        <!-- CRITICAL: The 'name' attribute must match the IFormFile parameter in the controller -->
+                        <input type="file" id="documentFile" name="DocumentFile" class="form-control" required />
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Submit Button -->
+        <div class="d-grid gap-2 my-4">
+            <button type="submit" class="btn btn-success btn-lg" id="submitButton">
+                <i class="bi bi-send-fill"></i> Submit Claim for Review
+            </button>
+        </div>
+    </form>
+</div>
+
+@section Scripts {
+    @{
+        await Html.RenderPartialAsync("_ValidationScriptsPartial");
+    }
+
+    <script>
+        // Use Ticks or a random number to guarantee a unique index, solving the "Key already added" error.
+        let lineItemIndex = Date.now();
+        const HOURLY_RATE = parseFloat(document.getElementById('initialRate').value);
+
+        // --- TEMPLATE FOR A NEW ROW ---
+        function createLineItemRow(index) {
+            // CRITICAL: The 'name' attributes must follow the pattern [CollectionName][index].PropertyName
+            return `
+                <tr data-index="${index}">
+                    <td>
+                        <input type="date" name="ClaimLineItems[${index}].DateOfActivity" class="form-control line-item-date" required />
+                    </td>
+                    <td>
+                        <input type="number" step="0.5" min="0.5" max="24" name="ClaimLineItems[${index}].Hours" class="form-control line-item-hours" required onchange="calculateTotals()" onkeyup="calculateTotals()" />
+                    </td>
+                    <td>
+                        <textarea name="ClaimLineItems[${index}].ActivityDescription" class="form-control" rows="1" required></textarea>
+                        <input type="hidden" name="ClaimLineItems[${index}].RatePerHour" value="${HOURLY_RATE}" />
+
+                        @* CRITICAL FIX: The use of an index field ensures MVC binds the collection correctly, even with non-sequential keys. *@
+                        <input type="hidden" name="ClaimLineItems.Index" value="${index}" />
+                    </td>
+                    <td class="text-end">
+                        <button type="button" class="btn btn-sm btn-danger" onclick="removeLineItem(this)">
+                            <i class="bi bi-trash"></i> Remove
+                        </button>
+                    </td>
+                </tr>
+            `;
+        }
+
+        // --- ADD ROW FUNCTIONALITY ---
+        function addLineItem() {
+            const tbody = document.querySelector('#lineItemsTable tbody');
+            tbody.insertAdjacentHTML('beforeend', createLineItemRow(lineItemIndex));
+            // Ensure the next index is unique (ticks) to prevent the "Key already added" error.
+            lineItemIndex = Date.now();
+            calculateTotals();
+        }
+
+        // --- REMOVE ROW FUNCTIONALITY ---
+        function removeLineItem(button) {
+            const row = button.closest('tr');
+            row.remove();
+
+            // Re-indexing is no longer strictly required for sequential indices due to the Index field fix,
+            // but we still call calculateTotals.
+            calculateTotals();
+        }
+
+        // --- CALCULATION LOGIC ---
+        function calculateTotals() {
+            let totalHours = 0;
+
+            // Find all hour input fields
+            document.querySelectorAll('.line-item-hours').forEach(input => {
+                const hours = parseFloat(input.value) || 0;
+                totalHours += hours;
+            });
+
+            const totalAmount = totalHours * HOURLY_RATE;
+
+            // Update display elements (Rands)
+            document.getElementById('totalHoursDisplay').textContent = totalHours.toFixed(2);
+            document.getElementById('totalAmountDisplay').textContent = 'R' + totalAmount.toFixed(2);
+
+            // Update hidden input fields for form submission
+            document.getElementById('TotalHoursInput').value = totalHours.toFixed(2);
+            document.getElementById('TotalAmountInput').value = totalAmount.toFixed(2);
+        }
+
+        // Initialize with one empty row when the page loads
+        document.addEventListener('DOMContentLoaded', function () {
+            addLineItem();
+        });
+
+    </script>
+}

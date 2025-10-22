@@ -1,0 +1,48 @@
+﻿@{
+    ViewData["Title"] = "Admin Dashboard";
+}
+
+<h2 class="mb-4">Administrator/Manager Review Portal</h2>
+
+<h3 class="mb-3">Claims Awaiting Your Approval</h3>
+
+<div class="table-responsive">
+    <table class="table table-striped table-hover table-bordered">
+        <thead class="table-dark">
+            <tr>
+                <th>Claim ID</th>
+                <th>Lecturer</th>
+                <th>Date Submitted</th>
+                <th>Total Hours</th>
+                <th>Status</th>
+                <th>Action</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td>CMCS-00124</td>
+                <td>L. Smith</td>
+                <td>2025-09-01</td>
+                <td>120.5</td>
+                <td><span class="badge bg-warning">Pending Review</span></td>
+                <td>
+                    <button type="button" class="btn btn-sm btn-info">Review Details</button>
+                </td>
+            </tr>
+            <tr>
+                <td>CMCS-00125</td>
+                <td>A. Jones</td>
+                <td>2025-09-03</td>
+                <td>90.0</td>
+                <td><span class="badge bg-warning">Pending Review</span></td>
+                <td>
+                    <button type="button" class="btn btn-sm btn-info">Review Details</button>
+                </td>
+            </tr>
+        </tbody>
+    </table>
+</div>
+
+<h3 class="mt-5 mb-3">Recently Approved/Rejected Claims</h3>
+<div class="table-responsive">
+</div>

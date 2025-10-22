@@ -1,0 +1,146 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewData["Title"] - CMCS_Prototype</title>
+    <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    @* Add custom styles if needed *@
+</head>
+<body>
+    <header>
+        <nav class="navbar navbar-expand-sm navbar-toggleable-sm navbar-light bg-white border-bottom shadow-sm mb-3">
+            <div class="container">
+
+                @* --- DYNAMIC CONTROLLER LOGIC --- *@
+                @{
+                    // Retrieve the user's role from the claims stored during login.
+                    var userType = User.FindFirst("UserType")?.Value ?? "Guest";
+                    string dashboardController = "Home"; // Default to Home/Login page
+
+                    if (userType == "Lecturer")
+                        dashboardController = "Lecturer";
+                    else if (userType == "Coordinator")
+                        dashboardController = "Coordinator";
+                    else if (userType == "Manager")
+                        dashboardController = "Manager";
+                }
+                @* --- END DYNAMIC LOGIC --- *@
+
+                @* --- FIX 1: DYNAMIC BRAND LINK --- *@
+                <a class="navbar-brand" asp-area="" asp-controller="@dashboardController" asp-action="Dashboard">CMCS Prototype</a>
+
+                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target=".navbar-collapse" aria-controls="navbarSupportedContent"
+                        aria-expanded="false" aria-label="Toggle navigation">
+                    <span class="navbar-toggler-icon"></span>
+                </button>
+                <div class="navbar-collapse collapse d-sm-inline-flex justify-content-between">
+                    <ul class="navbar-nav flex-grow-1">
+
+                        @* --- FIX 2: DYNAMIC DASHBOARD LINK --- *@
+                        @if (User.Identity?.IsAuthenticated == true)
+                        {
+                            <li class="nav-item">
+                                <a class="nav-link text-dark" asp-area="" asp-controller="@dashboardController" asp-action="Dashboard">Dashboard</a>
+                            </li>
+                        }
+
+                        @* ---------------------------------------------------- *@
+                        @* CONDITIONAL LINKS FOR ROLE-SPECIFIC ACTIONS *@
+                        @* ---------------------------------------------------- *@
+
+                        @* Lecturer Specific Link: Submit Claim *@
+                        @if (userType == "Lecturer")
+                        {
+                            <li class="nav-item">
+                                <a class="nav-link text-dark" asp-area="" asp-controller="Lecturer" asp-action="SubmitClaim">
+                                    <i class="bi bi-pencil-square"></i> Submit Claim
+                                </a>
+                            </li>
+                        }
+
+                        @* Coordinator Specific Link: Pending Claims Review *@
+                        @if (userType == "Coordinator")
+                        {
+                            <li class="nav-item">
+                                <a class="nav-link text-dark" asp-area="" asp-controller="Coordinator" asp-action="PendingClaims">
+                                    <i class="bi bi-list-check"></i> Review Claims
+                                </a>
+                            </li>
+                        }
+
+                        @* Manager Specific Link: Final Approval Review *@
+                        @if (userType == "Manager")
+                        {
+                            <li class="nav-item">
+                                <a class="nav-link text-dark" asp-area="" asp-controller="Manager" asp-action="PendingClaims">
+                                    <i class="bi bi-shield-lock-fill"></i> Final Approval
+                                </a>
+                            </li>
+                        }
+                    </ul>
+
+                    @* Login/Logout Section *@
+                    <ul class="navbar-nav">
+                        @if (User.Identity?.IsAuthenticated == true)
+                        {
+                            <li class="nav-item">
+                                @* Display the user's name (which should be set as the main identity name on login) *@
+                                <span class="nav-link text-dark">Welcome, <strong>@(User.Identity.Name)!</strong></span>
+                            </li>
+                            <li class="nav-item">
+                                <form asp-controller="Home" asp-action="Logout" method="post" class="form-inline">
+                                    @* Assumes Logout action is in HomeController and handles sign-out *@
+                                    <button type="submit" class="nav-link btn btn-link text-danger">Logout</button>
+                                </form>
+                            </li>
+                        }
+                        else
+                        {
+                            <li class="nav-item">
+                                <a class="nav-link text-dark" asp-area="" asp-controller="Home" asp-action="Index">Login</a>
+                            </li>
+                        }
+                    </ul>
+                </div>
+            </div>
+        </nav>
+    </header>
+
+    <div class="container">
+        <main role="main" class="pb-3">
+            @* Optional: Display a TempData message for success/error alerts *@
+            @if (TempData["SuccessMessage"] != null)
+            {
+                <div class="alert alert-success alert-dismissible fade show" role="alert">
+                    @TempData["SuccessMessage"]
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+            }
+            @if (TempData["ErrorMessage"] != null)
+            {
+                <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                    @TempData["ErrorMessage"]
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+            }
+
+            @RenderBody()
+        </main>
+    </div>
+
+    <footer class="border-top footer text-muted">
+        <div class="container">
+            &copy; 2025 - CMCS_Prototype
+        </div>
+    </footer>
+
+    <script src="~/lib/jquery/dist/jquery.min.js"></script>
+    <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="~/js/site.js" asp-append-version="true"></script>
+
+    @await RenderSectionAsync("Scripts", required: false)
+</body>
+</html>

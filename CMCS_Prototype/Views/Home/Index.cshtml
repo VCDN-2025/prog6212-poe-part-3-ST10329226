@@ -1,0 +1,58 @@
+﻿@model CMCS_Prototype.Models.LoginViewModel
+
+@{
+    ViewData["Title"] = "Login";
+    Layout = "_Layout"; // Use your existing layout
+}
+
+<div class="container d-flex justify-content-center align-items-center" style="min-height: 80vh;">
+    <div class="card shadow-lg p-4" style="max-width: 400px; width: 100%;">
+        <div class="card-header bg-primary text-white text-center">
+            <h4 class="mb-0">Contract Monthly Claim System</h4>
+        </div>
+        <div class="card-body">
+            <h5 class="card-title text-center mb-4">Lecturer/Staff Login</h5>
+
+            <!-- The Form is what makes the button functional -->
+            <form asp-controller="Home" asp-action="Login" method="post">
+
+                <!-- Display any validation errors -->
+                <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+
+                <!-- Email Field -->
+                <div class="form-group mb-3">
+                    <label asp-for="Email" class="form-label">Email Address</label>
+                    <input asp-for="Email" class="form-control" placeholder="Enter email" />
+                    <span asp-validation-for="Email" class="text-danger"></span>
+                </div>
+
+                <!-- Password Field -->
+                <div class="form-group mb-4">
+                    <label asp-for="Password" class="form-label">Password</label>
+                    <input asp-for="Password" class="form-control" placeholder="Password" />
+                    <span asp-validation-for="Password" class="text-danger"></span>
+                </div>
+
+                <!-- Login Button -->
+                <div class="d-grid gap-2">
+                    <button type="submit" class="btn btn-success btn-lg">Log In</button>
+                </div>
+            </form>
+
+            @* Hardcoded login prompt for prototype clarity *@
+            <p class="mt-4 text-center text-muted small">
+                Prototype Test Accounts:<br>
+                Lecturer: lecturer@test.com / password<br>
+                Coordinator: coordinator@test.com / password<br>
+                Manager: manager@test.com / password
+            </p>
+
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    @{
+        await Html.RenderPartialAsync("_ValidationScriptsPartial");
+    }
+}
