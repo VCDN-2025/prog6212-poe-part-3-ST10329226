@@ -1,0 +1,130 @@
+﻿@using CMCS_Prototype.Models.ViewModels
+@model HRDashboardVM
+
+<h2>HR Administration Dashboard</h2>
+
+<div class="row">
+    <div class="col-md-3">
+        <div class="card bg-primary text-white">
+            <div class="card-body">
+                <h5>Total Settled Claims</h5>
+                <h2>@Model.TotalSettledClaims</h2>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card bg-success text-white">
+            <div class="card-body">
+                <h5>Total Pending Payment</h5>
+                <h2>R @Model.TotalPendingPayment.ToString("N2")</h2>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="card mt-4">
+    <div class="card-header">
+        <h5>Automated Invoice Generation</h5>
+    </div>
+    <div class="card-body">
+        <form asp-action="GenerateMonthlyInvoice" method="get" class="row g-3">
+            <div class="col-md-4">
+                <select name="month" class="form-control">
+                    <option value="9">September 2025</option>
+                    <option value="10">October 2025</option>
+                </select>
+            </div>
+            <div class="col-md-4">
+                <button type="submit" class="btn btn-primary">
+                    <i class="bi bi-file-earmark-excel"></i> Generate Invoice
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<h3 class="mt-5">Lecturer Data Management</h3>
+<table class="table">
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Contractor Number</th>
+            <th>Hourly Rate</th>
+            <th>Actions</th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var lecturer in Model.Lecturers)
+        {
+            <tr>
+                <td>@lecturer.Name</td>
+                <td>@lecturer.ContractorNumber</td>
+                <td>
+                    <input type="number" value="@lecturer.DefaultHourlyRate"
+                           class="form-control"
+                           onchange="updateRate(@lecturer.Id, this.value)" />
+                </td>
+                <td>
+                    <button class="btn btn-sm btn-warning" onclick="resetPassword(@lecturer.Id)">
+                        Reset Password
+                    </button>
+                </td>
+            </tr>
+        }
+    </tbody>
+</table>
+
+@section Scripts {
+    <script>
+        // 1. updateRate FUNCTION
+                function updateRate(lecturerId, newRate) {
+                    // Basic validation
+                    if (newRate === '' || isNaN(newRate) || parseFloat(newRate) <= 0) {
+                         toastr.warning('Please enter a valid hourly rate.');
+                         return;
+                    }
+
+                    $.ajax({
+                        url: '/api/hr/update-rate',
+                        method: 'POST',
+                        data: JSON.stringify({ lecturerId: lecturerId, rate: parseFloat(newRate) }),
+                        contentType: 'application/json',
+                        success: function(response) {
+                            toastr.success('Hourly Rate updated successfully for ID ' + lecturerId + '.');
+                        },
+                        error: function(xhr, status, error) {
+                            //error handling
+                            toastr.error('Error updating rate: ' + (xhr.responseJSON?.message || xhr.responseText));
+                        }
+                    });
+                    // Added missing closing brace for the $.ajax call
+                } // The closing brace for updateRate()
+
+
+                // 2. resetPassword
+                function resetPassword(lecturerId) {
+                    if (!confirm('Are you sure you want to reset the password for this lecturer?')) {
+                        return;
+                    }
+
+                    $.ajax({
+                        url: '/api/hr/reset-password',
+                        method: 'POST',
+                        data: JSON.stringify(lecturerId),
+                        contentType: 'application/json',
+                        success: function(response) {
+                            if (response.success) {
+                                alert('Password reset successful! Temporary Password: ' + response.newTempPassword);
+                                toastr.success('Password reset for Lecturer ID ' + lecturerId + '.');
+                            } else {
+                                toastr.error('Password reset failed: ' + (response.message || 'Unknown error.'));
+                            }
+                        },
+                        error: function(xhr, status, error) {
+                            toastr.error('Error resetting password: ' + (xhr.responseJSON?.message || xhr.responseText));
+                        }
+                    });
+                    } // The closing brace for resetPassword()
+        
+    </script>
+}

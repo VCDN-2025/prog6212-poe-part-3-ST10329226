@@ -1,148 +1,187 @@
 ﻿using CMCS_Prototype.Data;
+using CMCS_Prototype.Services;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using System;
 using System.Linq;
 using System.Threading.Tasks;
-using System;
+using CMCS_Prototype.Models;
+using Microsoft.Extensions.Logging;
+using System.Collections.Generic; // Added for List<Claim>
 
 namespace CMCS_Prototype.Controllers
 {
-    // This controller handles all actions related to the Coordinator role.
+    // NOTE: Authorization should be added here: [Authorize(Roles = "Coordinator")]
     public class CoordinatorController : Controller
     {
         private readonly CMCSDbContext _context;
+        private readonly ClaimPolicyService _policyService;
+        private readonly ILogger<CoordinatorController> _logger;
 
-        public CoordinatorController(CMCSDbContext context)
+        // CORRECTED: Use proper Dependency Injection
+        public CoordinatorController(
+            CMCSDbContext context,
+            ClaimPolicyService policyService,
+            ILogger<CoordinatorController> logger)
         {
-            _context = context;
+            _context = context ?? throw new ArgumentNullException(nameof(context));
+            _policyService = policyService ?? throw new ArgumentNullException(nameof(policyService));
+            _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         }
 
-        // Coordinator/Dashboard
         public IActionResult Dashboard()
         {
-            // The Dashboard view will eventually redirect to PendingClaims
-            return View();
+            return RedirectToAction("PendingClaims");
         }
 
-        // GET: /Coordinator/PendingClaims
+        // CORRECTED: Added complete error handling
         public async Task<IActionResult> PendingClaims()
         {
-            // Fetch all claims that are currently in the "Pending" status.
-            var pendingClaims = await _context.Claims
-                .Include(c => c.Lecturer)
-                .Where(c => c.Status == "Pending")
-                .OrderBy(c => c.DateSubmitted)
-                .ToListAsync();
+            try
+            {
+                // FIXED: Check for both common initial statuses to avoid empty results
+                var pendingClaims = await _context.Claims
+                    .Include(c => c.Lecturer)
+                    .Where(c => c.Status == "Pending" || c.Status == "Submitted")
+                    .OrderBy(c => c.DateSubmitted)
+                    .ToListAsync();
 
-            // Note:a separate Coordinator-specific view, use that instead.
-            // If the Coordinator view is named PendingClaims.cshtml, use: return View(pendingClaims);
-            return View(pendingClaims);
+                // FIXED: Return empty list instead of error if no claims found
+                if (pendingClaims == null)
+                {
+                    pendingClaims = new List<Claim>(); // Prevent null reference in view
+                }
+
+                return View(pendingClaims);
+            }
+            catch (Exception ex)
+            {
+                // FIXED: Log the actual error instead of swallowing it
+                _logger.LogError(ex, "Error loading pending claims for coordinator");
+                TempData["ErrorMessage"] = $"Error loading claims: {ex.Message}";
+
+                // FIXED: Return empty list to view, not error page
+                return View(new List<Claim>());
+            }
         }
 
-        // Inside CMCS_Prototype.Controllers.CoordinatorController.cs
-
-        // Coordinator/ClaimDetails/5
+        // CORRECTED: Added error handling and null checks
         public async Task<IActionResult> ClaimDetails(int id)
         {
-            // Fetch the claim, including all related entities needed for a detailed report
-            var claim = await _context.Claims
-                .Include(c => c.Lecturer) // To display lecturer details
-                .Include(c => c.ClaimLineItems) // To display the detailed activities/hours
-                .Include(c => c.SupportingDocuments) // To display link the uploaded files
-                .FirstOrDefaultAsync(m => m.ClaimID == id);
-
-            if (claim == null)
+            try
             {
-                // error handling for non-existent resource
-                return NotFound();
+                var claim = await _context.Claims
+                    .Include(c => c.Lecturer)
+                    .Include(c => c.ClaimLineItems)
+                    .Include(c => c.SupportingDocuments)
+                    .FirstOrDefaultAsync(m => m.ClaimID == id);
+
+                if (claim == null)
+                {
+                    _logger.LogWarning("Claim {ClaimId} not found", id);
+                    return NotFound();
+                }
+
+                // FIXED: Added null check before policy check
+                var policyResult = _policyService.CheckClaimCompliance(claim);
+
+                ViewBag.PolicyViolations = policyResult.PolicyViolations ?? new List<string>(); // NULL SAFE
+                ViewBag.IsPolicyCompliant = policyResult.IsPolicyCompliant;
+
+                return View(claim);
             }
-
-            // calculation method here if TotalHours/TotalAmount are not
-
-            // Return the Claim object to the View (Views/Coordinator/ClaimDetails.cshtml)
-            return View(claim);
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error loading claim details for claim {ClaimId}", id);
+                TempData["ErrorMessage"] = $"Error loading claim details: {ex.Message}";
+                return RedirectToAction("PendingClaims");
+            }
         }
 
-        // POST: /Coordinator/Approve/5
+        // CORRECTED: Improved error handling and validation
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Approve(int id)
         {
-            var claim = await _context.Claims.FindAsync(id);
-
-            if (claim == null)
-            {
-                // This fulfills basic error handling
-                return NotFound();
-            }
-
             try
             {
-                // Coordinator approval must set the status 
-                // to the intermediate state that the Manager is looking for.
-                // This ensures the two-stage approval process works correctly.
-                claim.Status = "Coordinator Approved"; // STATUS FOR MANAGER REVIEW
+                var claim = await _context.Claims
+                    .Include(c => c.ClaimLineItems)
+                    .FirstOrDefaultAsync(c => c.ClaimID == id);
 
-                claim.CoordinatorID = 2; // Assuming Coordinator ID 2
+                if (claim == null)
+                {
+                    return NotFound();
+                }
+
+                var policyResult = _policyService.CheckClaimCompliance(claim);
+
+                if (!policyResult.IsPolicyCompliant)
+                {
+                    claim.Status = "Policy Review";
+                    TempData["ErrorMessage"] = "Claim flagged: " + string.Join("; ", policyResult.PolicyViolations);
+                }
+                else
+                {
+                    // >>> FIX APPLIED HERE: Removed the space to match ManagerController's filter <<<
+                    claim.Status = "CoordinatorApproved";
+                    TempData["SuccessMessage"] = $"Claim {claim.ClaimNumber} approved.";
+                }
+
+                // FIXED: Use consistent Coordinator ID (should come from current user)
+                claim.CoordinatorID = 2; // HARDCODED - replace with User.FindFirst("UserId")?.Value
                 claim.DateVerified = DateTime.Now;
 
                 _context.Update(claim);
                 await _context.SaveChangesAsync();
 
-                // Add success message (improves user experience)
-                TempData["SuccessMessage"] = $"Claim {claim.ClaimNumber} approved for Manager review.";
-
                 return RedirectToAction("PendingClaims");
             }
-            //Mandatory Error Handling (catch database exceptions)
-            catch (DbUpdateConcurrencyException)
+            catch (DbUpdateConcurrencyException ex)
             {
-                TempData["ErrorMessage"] = "A database error occurred due to conflicting updates. Please review the claim details and try again.";
+                _logger.LogError(ex, "Concurrency error approving claim {ClaimId}", id);
+                TempData["ErrorMessage"] = "Another user modified this claim. Please refresh.";
                 return RedirectToAction("PendingClaims");
             }
             catch (Exception ex)
             {
-                TempData["ErrorMessage"] = $"An unexpected error occurred during approval: {ex.Message}";
+                _logger.LogError(ex, "Error approving claim {ClaimId}", id);
+                TempData["ErrorMessage"] = $"Error: {ex.Message}";
                 return RedirectToAction("PendingClaims");
             }
         }
 
-        // Coordinator Reject
+        // CORRECTED: Added validation and logging
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Reject(int id, string reason)
         {
-            var claim = await _context.Claims.FindAsync(id);
-
-            if (claim == null)
+            if (string.IsNullOrWhiteSpace(reason)) // VALIDATION
             {
-                return NotFound();
+                TempData["ErrorMessage"] = "Rejection reason is required.";
+                return RedirectToAction("ClaimDetails", new { id });
             }
 
             try
             {
-                // Coordinator rejection is final for the rejection path
+                var claim = await _context.Claims.FindAsync(id);
+                if (claim == null) return NotFound();
+
                 claim.Status = "Rejected";
-                claim.CoordinatorID = 2;
-                claim.RejectionReason = reason ?? "Claim rejected by coordinator.";
+                claim.CoordinatorID = 2; // HARDCODED
+                claim.RejectionReason = reason;
+                claim.DateVerified = DateTime.Now;
 
                 _context.Update(claim);
                 await _context.SaveChangesAsync();
 
-                // Add success message
-                TempData["SuccessMessage"] = $"Claim {claim.ClaimNumber} has been rejected.";
-
-                return RedirectToAction("PendingClaims");
-            }
-            // Error Handling 
-            catch (DbUpdateConcurrencyException)
-            {
-                TempData["ErrorMessage"] = "A database error occurred due to conflicting updates. Please review the claim details and try again.";
+                TempData["SuccessMessage"] = $"Claim {claim.ClaimNumber} rejected.";
                 return RedirectToAction("PendingClaims");
             }
             catch (Exception ex)
             {
-                TempData["ErrorMessage"] = $"An unexpected error occurred during rejection: {ex.Message}";
+                _logger.LogError(ex, "Error rejecting claim {ClaimId}", id);
+                TempData["ErrorMessage"] = $"Error: {ex.Message}";
                 return RedirectToAction("PendingClaims");
             }
         }

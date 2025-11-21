@@ -10,12 +10,27 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Xunit;
+// NEW: Required using statement for the service
+using CMCS_Prototype.Services;
+// NEW: Required using statement for the logger
+using Microsoft.Extensions.Logging;
 using CMCS_Prototype.Tests;
 
 namespace CMCS_Prototype.Tests
 {
     public class CoordinatorControllerTests
     {
+        // NEW: Mocks for required dependencies
+        private readonly Mock<ClaimPolicyService> _mockPolicyService;
+        private readonly Mock<ILogger<CoordinatorController>> _mockLogger;
+
+        public CoordinatorControllerTests()
+        {
+            // Initialize the mocks once for all tests
+            _mockPolicyService = new Mock<ClaimPolicyService>();
+            _mockLogger = new Mock<ILogger<CoordinatorController>>();
+        }
+
         private Mock<CMCSDbContext> GetMockContext(List<Claim> claims)
         {
             var mockSet = claims.AsQueryable().MockDbSet();
@@ -35,7 +50,13 @@ namespace CMCS_Prototype.Tests
             var claimToApprove = new Claim { ClaimID = 1, Status = "Pending", CoordinatorID = null };
             var mockClaims = new List<Claim> { claimToApprove };
             var mockContext = GetMockContext(mockClaims);
-            var controller = new CoordinatorController(mockContext.Object);
+
+            // FIX: Pass all required dependencies to the constructor
+            var controller = new CoordinatorController(
+                mockContext.Object,
+                _mockPolicyService.Object,
+                _mockLogger.Object
+            );
 
             // ACT
             var result = await controller.Approve(1);
@@ -51,14 +72,17 @@ namespace CMCS_Prototype.Tests
         [Fact]
         public async Task Reject_ValidIdAndReason_SetsStatusToRejectedAndRedirects()
         {
-            // Change this line:
-            // var claimToReject = new Claim { ClaimID = 2, Status = "Pending", RejectionReason = null };
-
-            // To this:
+            // ARRANGE
             var claimToReject = new Claim { ClaimID = 2, Status = "Pending", RejectionReason = string.Empty };
             var mockClaims = new List<Claim> { claimToReject };
             var mockContext = GetMockContext(mockClaims);
-            var controller = new CoordinatorController(mockContext.Object);
+
+            // FIX: Pass all required dependencies to the constructor
+            var controller = new CoordinatorController(
+                mockContext.Object,
+                _mockPolicyService.Object,
+                _mockLogger.Object
+            );
             var reason = "Incomplete supporting documentation.";
 
             // ACT
@@ -79,7 +103,13 @@ namespace CMCS_Prototype.Tests
             // ARRANGE
             var mockClaims = new List<Claim>();
             var mockContext = GetMockContext(mockClaims);
-            var controller = new CoordinatorController(mockContext.Object);
+
+            // FIX: Pass all required dependencies to the constructor
+            var controller = new CoordinatorController(
+                mockContext.Object,
+                _mockPolicyService.Object,
+                _mockLogger.Object
+            );
 
             // ACT
             var result = await controller.Approve(99);
@@ -99,8 +129,14 @@ namespace CMCS_Prototype.Tests
 
             mockContext.Setup(c => c.SaveChangesAsync(default)).ThrowsAsync(new DbUpdateException("Simulated DB Lockout"));
 
-            var controller = new CoordinatorController(mockContext.Object)
+            // FIX: Pass all required dependencies to the constructor
+            var controller = new CoordinatorController(
+                mockContext.Object,
+                _mockPolicyService.Object,
+                _mockLogger.Object
+            )
             {
+                // This is still needed for TempData in this specific test
                 TempData = new Mock<ITempDataDictionary>().Object
             };
 

@@ -18,7 +18,7 @@ namespace CMCS_Prototype.Models
 
         // --- User Information ---
         [Required]
-        public int LecturerID { get; set; }
+        public int LecturerID{ get; set; }
         [ForeignKey("LecturerID")]
         public Lecturer Lecturer { get; set; } = null!; // Navigation property to the Lecturer
 
@@ -42,6 +42,9 @@ namespace CMCS_Prototype.Models
         [Required]
         [StringLength(20)]
         public string Status { get; set; } = "Pending"; // e.g., Pending, Approved, Rejected
+
+        [Required]
+        public bool PaymentProcessed { get; set; } = false;  // Added to track payment status
 
         // --- Financial Details ---
         [Column(TypeName = "decimal(18, 2)")]
@@ -94,7 +97,6 @@ namespace CMCS_Prototype.Models
                     lineItem.RatePerHour = hourlyRate;
                     // ✅ CORRECT: Calculate the line item's amount and save it.
                     lineItem.TotalAmount = lineItem.Hours * hourlyRate;
-                }
-            }
+                } }
     }
 }

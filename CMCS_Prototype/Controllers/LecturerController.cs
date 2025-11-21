@@ -5,28 +5,25 @@ using Microsoft.EntityFrameworkCore; // Required for Include
 using System.Linq;
 using System.Threading.Tasks;
 using System; // Required for DateTime, Guid, Exception
-using System.IO; // Required for Path, Directory, FileStream
+using System.IO;
+using CMCS_Prototype.Services; // Required for Path, Directory, FileStream
 using Microsoft.AspNetCore.Http; // Required for IFormFile
 using Microsoft.AspNetCore.Hosting; // Required for IWebHostEnvironment
 
 namespace CMCS_Prototype.Controllers
 {
-    // (Roles = "Lecturer")] // for security in a later stage
-    public class LecturerController : Controller
+    // (Roles = "Lecturer")] // for security in a later stage
+    public class LecturerController(
+        CMCSDbContext context,
+        IWebHostEnvironment hostingEnvironment,
+        ClaimValidationService validationService) : Controller
     {
-        private readonly CMCSDbContext _context;
-        // IWebHostEnvironment to correctly access wwwroot path
-        private readonly IWebHostEnvironment _hostingEnvironment;
+        private readonly CMCSDbContext _context = context;
+        private readonly IWebHostEnvironment _hostingEnvironment = hostingEnvironment;
+        private readonly ClaimValidationService _validationService = validationService; // Add this field
+                                                                                        //  /Lecturer/Dashboard
 
-        // database context and the hosting environment
-        public LecturerController(CMCSDbContext context, IWebHostEnvironment hostingEnvironment)
-        {
-            _context = context;
-            _hostingEnvironment = hostingEnvironment;
-        }
-
-        //  /Lecturer/Dashboard
-        public async Task<IActionResult> Dashboard()
+        public async Task<IActionResult> Dashboard()
         {
             // HARDCODED LecturerID = 1 for prototype 
             int currentLecturerId = 1;
@@ -83,11 +80,19 @@ namespace CMCS_Prototype.Controllers
         // CRITICAL: IFormFile is required to handle the file upload from the form
         public async Task<IActionResult> SubmitClaim(Claim claim, IFormFile documentFile)
         {
+
+            var validationResult = await _validationService.ValidateClaimAsync(claim);
+
+            if (!validationResult.IsValid)
+            {
+                ModelState.AddModelError("", validationResult.ErrorMessage);
+                return View(claim);
+            }
             // rely on client-side and model binding for line items, but
             // the RatePerHour is not coming from the form, so we must set it.
 
             // HARDCODED HOURLY RATE for prototype
-            const decimal HOURLY_RATE = 150.00M;
+            const decimal hourlyRate = 150.00M;
 
             // ModelState.IsValid check later after fixing the form binding.
 
@@ -100,7 +105,7 @@ namespace CMCS_Prototype.Controllers
 
                 // Call the calculation method BEFORE saving
                 // This populates TotalHours and TotalAmount based on ClaimLineItems
-                claim.CalculateTotals(HOURLY_RATE);
+                claim.CalculateTotals(hourlyRate);
 
                 // SAVE THE CLAIM AND LINE ITEMS 
                 // EF Core saves ClaimLineItems automatically because they are attached to the Claim

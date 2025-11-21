@@ -1,17 +1,17 @@
 {
   "format": 1,
   "restore": {
-    "C:\\Users\\goven\\Desktop\\prog sem 2 6212 2A\\CMCS_Prototype\\CMCS_Prototype\\CMCS_Prototype.csproj": {}
+    "C:\\Users\\goven\\Desktop\\CMCS_Prototype\\CMCS_Prototype\\CMCS_Prototype.csproj": {}
   },
   "projects": {
-    "C:\\Users\\goven\\Desktop\\prog sem 2 6212 2A\\CMCS_Prototype\\CMCS_Prototype\\CMCS_Prototype.csproj": {
+    "C:\\Users\\goven\\Desktop\\CMCS_Prototype\\CMCS_Prototype\\CMCS_Prototype.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "C:\\Users\\goven\\Desktop\\prog sem 2 6212 2A\\CMCS_Prototype\\CMCS_Prototype\\CMCS_Prototype.csproj",
+        "projectUniqueName": "C:\\Users\\goven\\Desktop\\CMCS_Prototype\\CMCS_Prototype\\CMCS_Prototype.csproj",
         "projectName": "CMCS_Prototype",
-        "projectPath": "C:\\Users\\goven\\Desktop\\prog sem 2 6212 2A\\CMCS_Prototype\\CMCS_Prototype\\CMCS_Prototype.csproj",
+        "projectPath": "C:\\Users\\goven\\Desktop\\CMCS_Prototype\\CMCS_Prototype\\CMCS_Prototype.csproj",
         "packagesPath": "C:\\Users\\goven\\.nuget\\packages\\",
-        "outputPath": "C:\\Users\\goven\\Desktop\\prog sem 2 6212 2A\\CMCS_Prototype\\CMCS_Prototype\\obj\\",
+        "outputPath": "C:\\Users\\goven\\Desktop\\CMCS_Prototype\\CMCS_Prototype\\obj\\",
         "projectStyle": "PackageReference",
         "fallbackFolders": [
           "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"
@@ -51,6 +51,22 @@
         "net8.0": {
           "targetAlias": "net8.0",
           "dependencies": {
+            "ClosedXML": {
+              "target": "Package",
+              "version": "[0.104.2, )"
+            },
+            "FluentValidation.AspNetCore": {
+              "target": "Package",
+              "version": "[11.3.1, )"
+            },
+            "Microsoft.AspNetCore.Identity.EntityFrameworkCore": {
+              "target": "Package",
+              "version": "[8.0.0, )"
+            },
+            "Microsoft.AspNetCore.Identity.UI": {
+              "target": "Package",
+              "version": "[8.0.11, )"
+            },
             "Microsoft.AspNetCore.Mvc": {
               "target": "Package",
               "version": "[2.3.0, )"
@@ -103,7 +119,7 @@
               "privateAssets": "all"
             }
           },
-          "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\9.0.304/PortableRuntimeIdentifierGraph.json"
+          "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\9.0.306/PortableRuntimeIdentifierGraph.json"
         }
       }
     }

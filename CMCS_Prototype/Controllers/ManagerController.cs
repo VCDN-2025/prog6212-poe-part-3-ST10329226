@@ -8,7 +8,7 @@ using System;
 
 namespace CMCS_Prototype.Controllers
 {
-    // This controller handles pages specific to the Academic Manager role
+    // NOTE: Authorization should be added here: [Authorize(Roles = "Manager")]
     public class ManagerController : Controller
     {
         private readonly CMCSDbContext _context;
@@ -28,7 +28,9 @@ namespace CMCS_Prototype.Controllers
         {
             var pendingClaims = await _context.Claims
                 .Include(c => c.Lecturer)
-                .Where(c => c.Status == "Coordinator Approved")
+                // FIX APPLIED: Removed the space to match "CoordinatorApproved" 
+                // Assumes the Coordinator sets the status without a space.
+                .Where(c => c.Status == "CoordinatorApproved")
                 .OrderBy(c => c.DateSubmitted)
                 .ToListAsync();
 
@@ -47,9 +49,10 @@ namespace CMCS_Prototype.Controllers
             try
             {
                 // Implement business rule check for unit test to pass
-                if (claim.Status != "Coordinator Approved")
+                // CHECK HERE: Ensure this status string also matches the Coordinator's output
+                if (claim.Status != "CoordinatorApproved")
                 {
-                    TempData["ErrorMessage"] = $"Claim {claim.ClaimNumber} cannot be approved. Current status is '{claim.Status}'. It must be 'Coordinator Approved'.";
+                    TempData["ErrorMessage"] = $"Claim {claim.ClaimNumber} cannot be approved. Current status is '{claim.Status}'. It must be 'CoordinatorApproved'.";
                     return RedirectToAction("PendingClaims");
                 }
 

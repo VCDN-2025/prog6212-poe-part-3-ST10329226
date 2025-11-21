@@ -1,42 +1,21 @@
-﻿using System.ComponentModel.DataAnnotations;
-using System.ComponentModel.DataAnnotations.Schema; // Added for Table attribute (optional)
+﻿using Microsoft.AspNetCore.Identity;
+using System.ComponentModel.DataAnnotations;
 
 namespace CMCS_Prototype.Models
 {
     /// <summary>
-    /// The base class for all authenticated users (Lecturer, Coordinator, Manager).
-    /// This model is intended for database storage.
+    /// Application User model that extends IdentityUser.
+    /// IdentityUser provides: Id, Email, PasswordHash, UserName, etc.
+    /// Only custom properties unique to our system are added here.
     /// </summary>
-    // [Table("Users")] // Optional: Use this if your table name differs from the class name
-    public class User
+    public class User : IdentityUser<int>  // ✅ Inherits all Identity fields
     {
-        [Key]
-        [Required]
-        public int UserID { get; private set; }
-
-        [Required]
+        /// <summary>
+        /// Full display name for the user (e.g., "John Smith")
+        /// </summary>
         [MaxLength(100)]
         [Display(Name = "Full Name")]
+        [PersonalData]  // ✅ Included in GDPR data exports
         public string Name { get; set; } = string.Empty;
-
-        [Required]
-        [EmailAddress]
-        [MaxLength(255)]
-        public string Email { get; set; } = string.Empty;
-
-        /// <summary>
-        /// Stores the securely hashed and salted password for authentication.
-        /// This should NEVER store the plain text password.
-        /// </summary>
-        [Required]
-        [MaxLength(255)]
-        public string PasswordHash { get; set; } = string.Empty;
-
-        /// <summary>
-        /// Defines the role of the user (e.g., "Lecturer", "Coordinator", "Manager").
-        /// </summary>
-        [Required]
-        [MaxLength(50)]
-        public string UserType { get; set; } = string.Empty;
     }
 }

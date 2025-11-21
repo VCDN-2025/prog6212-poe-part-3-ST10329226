@@ -76,7 +76,8 @@
                                 <th style="width: 15%;">Date</th>
                                 <th style="width: 10%;">Hours</th>
                                 <th>Activity Description</th>
-                                <th style="width: 15%;" class="text-end">Action</th>
+                                <th style="width: 15%;">Total (R)</th>
+                                <th style="width: 10%;" class="text-end">Action</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -127,7 +128,8 @@
                 </div>
             </div>
         </div>
-
+        <!--added-->
+        <div id="policyWarnings" class="mb-3"></div>
         <!-- Submit Button -->
         <div class="d-grid gap-2 my-4">
             <button type="submit" class="btn btn-success btn-lg" id="submitButton">
@@ -148,6 +150,7 @@
         const HOURLY_RATE = parseFloat(document.getElementById('initialRate').value);
 
         // --- TEMPLATE FOR A NEW ROW ---
+        // CORRECTED: Fixed function declaration syntax - removed incorrect indentation
         function createLineItemRow(index) {
             // CRITICAL: The 'name' attributes must follow the pattern [CollectionName][index].PropertyName
             return `
@@ -156,14 +159,20 @@
                         <input type="date" name="ClaimLineItems[${index}].DateOfActivity" class="form-control line-item-date" required />
                     </td>
                     <td>
-                        <input type="number" step="0.5" min="0.5" max="24" name="ClaimLineItems[${index}].Hours" class="form-control line-item-hours" required onchange="calculateTotals()" onkeyup="calculateTotals()" />
+                        <input type="number" step="0.5" min="0.5" max="24"
+                               name="ClaimLineItems[${index}].Hours"
+                               class="form-control line-item-hours line-item-input"
+                               required onchange="calculateTotals()" onkeyup="calculateTotals()" />
                     </td>
                     <td>
                         <textarea name="ClaimLineItems[${index}].ActivityDescription" class="form-control" rows="1" required></textarea>
-                        <input type="hidden" name="ClaimLineItems[${index}].RatePerHour" value="${HOURLY_RATE}" />
-
-                        @* CRITICAL FIX: The use of an index field ensures MVC binds the collection correctly, even with non-sequential keys. *@
+                        <input type="hidden" name="ClaimLineItems[${index}].RatePerHour" value="${HOURLY_RATE}"
+                               class="line-item-rate" />
                         <input type="hidden" name="ClaimLineItems.Index" value="${index}" />
+                    </td>
+                    <td class="text-end">
+                        <span class="line-item-total-display fw-bold">R0.00</span>
+                        <input type="hidden" name="ClaimLineItems[${index}].TotalAmount" class="line-item-total-input" value="0.00" />
                     </td>
                     <td class="text-end">
                         <button type="button" class="btn btn-sm btn-danger" onclick="removeLineItem(this)">
@@ -196,25 +205,86 @@
         // --- CALCULATION LOGIC ---
         function calculateTotals() {
             let totalHours = 0;
+            let regularHours = 0;
+            let overtimeHours = 0;
+            const HOURLY_RATE = parseFloat(document.getElementById('initialRate').value);
+            const OVERTIME_THRESHOLD = 160; // Monthly threshold
+            const OVERTIME_MULTIPLIER = 1.5;
 
-            // Find all hour input fields
-            document.querySelectorAll('.line-item-hours').forEach(input => {
-                const hours = parseFloat(input.value) || 0;
+            // Calculate daily hours for validation
+            const dailyHoursMap = {};
+
+            document.querySelectorAll('#lineItemsTable tbody tr').forEach(row => {
+                const hours = parseFloat(row.querySelector('.line-item-hours').value) || 0;
+                const date = row.querySelector('.line-item-date').value;
+                const rate = parseFloat(row.querySelector('.line-item-rate').value) || HOURLY_RATE;
+
+                // Track daily hours for policy check
+                if (date) {
+                    dailyHoursMap[date] = (dailyHoursMap[date] || 0) + hours;
+                }
+
                 totalHours += hours;
             });
 
-            const totalAmount = totalHours * HOURLY_RATE;
+            // Apply overtime logic
+            if (totalHours > OVERTIME_THRESHOLD) {
+                regularHours = OVERTIME_THRESHOLD;
+                overtimeHours = totalHours - OVERTIME_THRESHOLD;
+            } else {
+                regularHours = totalHours;
+                overtimeHours = 0;
+            }
 
-            // Update display elements (Rands)
+            // Calculate amounts
+            const regularAmount = regularHours * HOURLY_RATE;
+            const overtimeAmount = overtimeHours * (HOURLY_RATE * OVERTIME_MULTIPLIER);
+            const grandTotalAmount = regularAmount + overtimeAmount;
+
+            // Update UI with detailed breakdown
             document.getElementById('totalHoursDisplay').textContent = totalHours.toFixed(2);
-            document.getElementById('totalAmountDisplay').textContent = 'R' + totalAmount.toFixed(2);
-
-            // Update hidden input fields for form submission
             document.getElementById('TotalHoursInput').value = totalHours.toFixed(2);
-            document.getElementById('TotalAmountInput').value = totalAmount.toFixed(2);
+
+            // Enhanced amount display showing breakdown
+            const amountDisplay = `R${grandTotalAmount.toFixed(2)}` +
+                (overtimeHours > 0 ? `<br><small class="text-muted">(R${regularAmount.toFixed(2)} regular + R${overtimeAmount.toFixed(2)} overtime)</small>` : '');
+            document.getElementById('totalAmountDisplay').innerHTML = amountDisplay;
+            document.getElementById('TotalAmountInput').value = grandTotalAmount.toFixed(2);
+
+            // Real-time policy validation
+            validatePolicy(totalHours, dailyHoursMap);
         }
 
-        // Initialize with one empty row when the page loads
+        // --- POLICY VALIDATION ---
+        // CORRECTED: Added missing closing brace for this function
+        function validatePolicy(totalHours, dailyHoursMap) {
+            const warnings = [];
+
+            // Check monthly limit
+            if (totalHours > 200) {
+                warnings.push(`⚠️ <strong>Monthly Limit Exceeded:</strong> ${totalHours}h > 200h maximum`);
+            }
+
+            // Check daily limits
+            for (const [date, hours] of Object.entries(dailyHoursMap)) {
+                if (hours > 8) {
+                    warnings.push(`⚠️ <strong>Daily Limit Exceeded:</strong> ${hours}h on ${date} > 8h maximum`);
+                }
+            }
+
+            // Display warnings
+            const warningDiv = document.getElementById('policyWarnings');
+            if (warnings.length > 0) {
+                warningDiv.innerHTML = `<div class="alert alert-warning">${warnings.join('<br>')}</div>`;
+                document.getElementById('submitButton').disabled = true;
+            } else {
+                warningDiv.innerHTML = '';
+                document.getElementById('submitButton').disabled = false;
+            }
+        } // CORRECTED: This closing brace was missing
+
+        // --- PAGE INITIALIZATION ---
+        // CORRECTED: Moved this outside the validatePolicy function to global scope
         document.addEventListener('DOMContentLoaded', function () {
             addLineItem();
         });

@@ -1,114 +1,184 @@
-﻿@model IEnumerable<CMCS_Prototype.Models.Claim>
-
-@{
+﻿@{
     ViewData["Title"] = "Pending Claims for Review";
-    // Define the current controller based on the view being used (e.g., Coordinator)
-    // This assumes the file is in the Views/Coordinator/ folder.
-    var currentController = ViewContext.RouteData.Values["controller"].ToString();
+    var controllerValue = ViewContext.RouteData.Values["controller"];
+    var currentController = controllerValue?.ToString() ?? "DefaultController";
 }
 
 <h2 class="text-primary mb-4"><i class="bi bi-list-check"></i> Claims Awaiting Review</h2>
 <hr />
 
-@* Display success/error messages passed via TempData (optional but recommended for UX) *@
 @if (TempData["SuccessMessage"] != null)
 {
-    <div class="alert alert-success">@TempData["SuccessMessage"]</div>
+    <div class="alert alert-success alert-dismissible fade show" role="alert">
+        @TempData["SuccessMessage"]
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
 }
 @if (TempData["ErrorMessage"] != null)
 {
-    <div class="alert alert-danger">@TempData["ErrorMessage"]</div>
-}
-
-@if (!Model.Any())
-{
-    <div class="alert alert-success" role="alert">
-        <strong>Success!</strong> There are currently no claims pending your review.
+    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+        <strong>Error:</strong> @TempData["ErrorMessage"]
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
     </div>
 }
-else
-{
-    @* Note: The claims shown here depend on the logged-in user and their controller's filter logic. *@
-    <p>Found <strong>@Model.Count()</strong> claims with 'Pending' status.</p>
 
-    <div class="table-responsive">
-        <table class="table table-hover table-striped">
-            <thead>
-                <tr>
-                    <th>Claim No.</th>
-                    <th>Lecturer</th>
-                    <th>Date Submitted</th>
-                    <th class="text-end">Total Hours</th>
-                    <th class="text-end">Total Amount (R)</th>
-                    <th>Status</th>
-                    <th style="width: 20%;">Action</th>
-                </tr>
-            </thead>
-            <tbody>
-                @foreach (var item in Model)
-                {
-                    <tr>
-                        <td>
-                            @* FIX: Use the determined 'currentController' to dynamically set the target. *@
-                            <a asp-controller="@currentController" asp-action="ClaimDetails" asp-route-id="@item.ClaimID" class="fw-bold">
-                                @Html.DisplayFor(modelItem => item.ClaimNumber)
-                            </a>
-                        </td>
+<div id="noClaimsMessage" class="alert alert-success" role="alert" style="display:none;">
+    <strong>Success!</strong> There are currently no claims pending your review.
+</div>
 
-                        <td>@Html.DisplayFor(modelItem => item.Lecturer.Name)</td>
+<p id="claimCountMessage" class="text-muted">Loading claims...</p>
 
-                        <td>@Html.DisplayFor(modelItem => item.DateSubmitted)</td>
-                        <td class="text-end">@Html.DisplayFor(modelItem => item.TotalHours)</td>
-
-                        <td class="text-end text-success fw-bold">R@(item.TotalAmount.ToString("N2"))</td>
-
-                        <td><span class="badge bg-warning">@item.Status</span></td>
-                        <td>
-                            @* Approve Button (must use the current controller for routing) *@
-                            <form asp-controller="@currentController" asp-action="Approve" asp-route-id="@item.ClaimID" method="post" style="display:inline;">
-                                @Html.AntiForgeryToken()
-                                <button type="submit" class="btn btn-success btn-sm me-2"
-                                        onclick="return confirm('Are you sure you want to approve this claim? It will be sent for the next stage of approval.');">
-                                    <i class="bi bi-check-circle"></i> Approve
-                                </button>
-                            </form>
-
-                            @* Reject Button (Calls JS function to prompt for reason) *@
-                            <button type="button" class="btn btn-danger btn-sm"
-                                    onclick="rejectClaim('@item.ClaimID', '@item.ClaimNumber')">
-                                <i class="bi bi-x-circle"></i> Reject
-                            </button>
-                        </td>
-                    </tr>
-                }
-            </tbody>
-        </table>
-    </div>
-}
+<div class="table-responsive">
+    <table id="claimsTable" class="table table-hover table-striped">
+        <thead>
+            <tr>
+                <th>Claim No.</th>
+                <th>Lecturer</th>
+                <th>Date Submitted</th>
+                <th class="text-end">Total Hours</th>
+                <th class="text-end">Total Amount (R)</th>
+                <th>Status</th>
+                <th style="width: 20%;">Action</th>
+            </tr>
+        </thead>
+        <tbody>
+        </tbody>
+    </table>
+</div>
 
 @section Scripts {
+    @Html.AntiForgeryToken()
+
     <script>
-        function rejectClaim(claimId, claimNumber) {
-            var reason = prompt("Enter rejection reason for Claim " + claimNumber + ":");
+        $(document).ready(function() {
+            loadPendingClaims();
+        });
 
-            if (reason) {
-                var form = document.createElement('form');
-                form.method = 'post';
-                // IMPORTANT: The JS action needs the full path including the current controller
-                form.action = '/' + '@currentController' + '/Reject/' + claimId;
+        function loadPendingClaims() {
+            // ✅ FIXED: Correct API controller name is 'claimsapi'
+            $.ajax({
+                url: '/api/claimsapi/pending',
+                method: 'GET',
+                dataType: 'json', // Explicitly expect JSON
+                success: function(data) {
+                    const tbody = $('#claimsTable tbody');
+                    tbody.empty();
 
-                // Get Anti-Forgery Token from the page
-                var token = document.querySelector('input[name="__RequestVerificationToken"]').value;
-                form.innerHTML += '<input type="hidden" name="__RequestVerificationToken" value="' + token + '" />';
+                    const claimCount = data.length;
+                    $('#claimCountMessage').text(`Found ${claimCount} claims awaiting review.`);
 
-                form.innerHTML += '<input type="hidden" name="id" value="' + claimId + '" />';
-                form.innerHTML += '<input type="hidden" name="reason" value="' + reason + '" />';
+                    if (claimCount === 0) {
+                        $('#noClaimsMessage').show();
+                        $('#claimsTable').hide();
+                        return;
+                    }
 
-                document.body.appendChild(form);
-                form.submit();
-            } else if (reason !== null) {
-                alert('Rejection cancelled or reason not provided. Please try again.');
+                    $('#noClaimsMessage').hide();
+                    $('#claimsTable').show();
+
+                    const token = document.querySelector('input[name="__RequestVerificationToken"]').value;
+                    const controller = '@currentController';
+
+                    data.forEach(claim => {
+                        // ✅ NULL-SAFE: Handle missing properties
+                        const totalAmount = claim.totalAmount || 0;
+                        const totalAmountFormatted = totalAmount.toFixed(2);
+                        const dateSubmitted = claim.dateSubmitted ? new Date(claim.dateSubmitted).toLocaleDateString() : 'N/A';
+                        const lecturerName = claim.lecturerName || 'Unknown Lecturer';
+                        const claimNumber = claim.claimNumber || 'N/A';
+                        const status = claim.status || 'Unknown';
+
+                        const row = `
+                            <tr>
+                                <td>
+                                    <a href="/${controller}/ClaimDetails/${claim.claimID}" class="fw-bold">
+                                        ${claimNumber}
+                                    </a>
+                                </td>
+                                <td>${lecturerName}</td>
+                                <td>${dateSubmitted}</td>
+                                <td class="text-end">${claim.totalHours || 0}</td>
+                                <td class="text-end text-success fw-bold">R${totalAmountFormatted}</td>
+                                <td><span class="badge bg-warning">${status}</span></td>
+                                <td>
+                                    <!-- Approve Form -->
+                                    <form action="/${controller}/Approve/${claim.claimID}" method="post" style="display:inline;">
+                                        <input type="hidden" name="__RequestVerificationToken" value="${token}" />
+                                        <button type="submit" class="btn btn-success btn-sm me-2"
+                                                onclick="return confirm('Approve this claim?');">
+                                            <i class="bi bi-check-circle"></i> Approve
+                                        </button>
+                                    </form>
+
+                                    <!-- Reject Button -->
+                                    <button type="button" class="btn btn-danger btn-sm"
+                                            onclick="rejectClaim('${claim.claimID}', '${claimNumber}', '${controller}', '${token}')">
+                                        <i class="bi bi-x-circle"></i> Reject
+                                    </button>
+                                </td>
+                            </tr>`;
+                        tbody.append(row);
+                    });
+                },
+                error: function(xhr, status, error) {
+                    // ✅ ENHANCED: Show detailed error message
+                    let errorMessage = 'Error loading claims. ';
+
+                    if (xhr.status === 404) {
+                        errorMessage += 'API endpoint not found. Check that ClaimsApiController exists and is decorated with [Route("api/[controller]")].';
+                    } else if (xhr.status === 500) {
+                        errorMessage += 'Server error. Check Visual Studio Output window for details.';
+                    } else {
+                        errorMessage += `${xhr.status} ${xhr.statusText}. ${xhr.responseText || error}`;
+                    }
+
+                    $('#claimCountMessage').html(`<span class="text-danger"><i class="bi bi-exclamation-triangle"></i> ${errorMessage}</span>`);
+                    $('#noClaimsMessage').hide();
+                    $('#claimsTable').hide();
+
+                    // Log full error to browser console for debugging
+                    console.error("Claims API Error Details:", {
+                        status: xhr.status,
+                        statusText: xhr.statusText,
+                        responseText: xhr.responseText,
+                        error: error
+                    });
+                }
+            });
+        }
+
+        function rejectClaim(claimId, claimNumber, controller, token) {
+            var reason = prompt(`Enter rejection reason for Claim ${claimNumber}:`);
+            if (!reason || !reason.trim()) {
+                alert('Rejection reason is required.');
+                return;
             }
+
+            var form = document.createElement('form');
+            form.method = 'post';
+            form.action = `/${controller}/Reject/${claimId}`;
+            form.innerHTML = `
+                <input type="hidden" name="__RequestVerificationToken" value="${token}" />
+                <input type="hidden" name="id" value="${claimId}" />
+                <input type="hidden" name="reason" value="${reason}" />
+            `;
+            document.body.appendChild(form);
+            form.submit();
+        }
+        function autoApprove(claimId) {
+            $.ajax({
+                url: `/api/claims/${claimId}/auto-approve`,
+                method: 'POST',
+                headers: { 'RequestVerificationToken': $('input[name="__RequestVerificationToken"]').val() },
+                success: function(response) {
+                    if (response.success) {
+                        toastr.success(`Claim auto-approved!`);
+                        loadPendingClaims();
+                    } else {
+                        toastr.warning('Manual review required');
+                    }
+                }
+            });
         }
     </script>
 }

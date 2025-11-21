@@ -1,77 +1,117 @@
 using CMCS_Prototype.Data;
 using CMCS_Prototype.Models;
+using Microsoft.AspNetCore.Identity; // Required for User management and Sign-in
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
 using System.Diagnostics;
-using System.Linq;
+using System.Security.Claims; // Required for ClaimsPrincipal
 using System.Threading.Tasks;
 
-// NOTE: We need System.IO and System.Security.Claims but will add them only when needed
-// The current logic doesn't require DbContext interaction yet, but we'll include it for future use.
+// NOTE: I am assuming your login model is named AppLoginViewModel for clarity
+// If your view model is just named LoginViewModel, please adjust the name.
+using AppLoginViewModel = CMCS_Prototype.Models.LoginViewModel;
 
 namespace CMCS_Prototype.Controllers
 {
     public class HomeController : Controller
     {
         private readonly CMCSDbContext _context;
+        // NEW: Services for managing users and handling sign-in
+        private readonly UserManager<User> _userManager;
+        private readonly SignInManager<User> _signInManager;
 
-        // Dependency Injection of the database context
-        public HomeController(CMCSDbContext context)
+        // Dependency Injection of all required services
+        public HomeController(
+            CMCSDbContext context,
+            UserManager<User> userManager,
+            SignInManager<User> signInManager)
         {
             _context = context;
+            _userManager = userManager;
+            _signInManager = signInManager;
         }
 
         // Home/Index main Login Page
         public IActionResult Index()
         {
             // Pass an empty LoginViewModel to the view for form binding
-            return View(new LoginViewModel());
+            // Note: If the user is already authenticated, redirect them to their respective dashboard
+            if (User.Identity.IsAuthenticated)
+            {
+                return RedirectBasedOnRole(User);
+            }
+
+            return View(new AppLoginViewModel());
         }
 
-        // Add 'await Task.CompletedTask
-        [HttpPost]
-        [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Login(LoginViewModel model)
+        // Handle POST request for Login
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> Login(AppLoginViewModel model)
         {
-            // 1. Basic Model State Validation (checks [Required] and [EmailAddress] attributes)
+            // 1. Basic Model State Validation
             if (!ModelState.IsValid)
             {
                 // If validation fails, return the user to the login page with errors
                 return View("Index", model);
             }
 
-            // Prototype Authentication Logic HARDCODED for demonstration
-   
-            // because you haven't included System.Security.Claims or determined the user's role 
-            // via the database yet. We must rely only on the hardcoded checks below for the prototype.
-            // Add this line to ensure the method is truly asynchronous
-            await Task.CompletedTask;
+            // 2. Core ASP.NET Identity Sign-in Attempt
+            var result = await _signInManager.PasswordSignInAsync(
+                model.Email, // Email is used as the UserName in our seed data
+                model.Password,
+                isPersistent: false, // Don't persist cookie (no "Remember Me")
+                lockoutOnFailure: false); // Don't lock account on failure
 
-            if (model.Email.ToLower() == "lecturer@test.com" && model.Password == "password")
+            if (result.Succeeded)
             {
-                // Simulate Lecturer Login
-                return RedirectToAction("Dashboard", "Lecturer");
+                // 3. Authentication Succeeded: Now determine role for redirection
+                var user = await _userManager.FindByEmailAsync(model.Email);
+                if (user != null)
+                {
+                    return RedirectBasedOnRole(await _signInManager.CreateUserPrincipalAsync(user));
+                }
             }
-            else if (model.Email.ToLower() == "coordinator@test.com" && model.Password == "password")
-            {
-                // Simulate Coordinator Login
-                // Redirect to the CoordinatorController
-                return RedirectToAction("Dashboard", "Coordinator");
-            }
-            else if (model.Email.ToLower() == "manager@test.com" && model.Password == "password")
-            {
-                // Simulate Manager Login
-                //Redirect to the ManagerController
-                return RedirectToAction("Dashboard", "Manager");
-            }
-            else
-            {
-                // Authentication failed
-                ModelState.AddModelError("", "Invalid login attempt.");
-                return View("Index", model);
-            }
+
+            // 4. Authentication Failed
+            ModelState.AddModelError("", "Invalid login attempt.");
+            return View("Index", model);
         }
 
+        // New Helper method to handle role-based redirection
+        private IActionResult RedirectBasedOnRole(ClaimsPrincipal user)
+        {
+            if (user.IsInRole("Lecturer"))
+            {
+                return RedirectToAction("Dashboard", "Lecturer");
+            }
+            else if (user.IsInRole("Coordinator"))
+            {
+                return RedirectToAction("PendingClaims", "Coordinator");
+            }
+            // ?? ADD THIS BLOCK ??
+            else if (user.IsInRole("HR"))
+            {
+                return RedirectToAction("Dashboard", "HR"); // Directs to your newly completed HRController Dashboard
+            }
+            // ?? END ADDITION ??
+            else if (user.IsInRole("Manager"))
+            {
+                return RedirectToAction("Dashboard", "Manager");
+            }
+
+            // Default fallback if role isn't recognized
+            return RedirectToAction("Error");
+        }
+        // Added Logout method to allow users to sign out
+        [HttpPost]
+        public async Task<IActionResult> Logout()
+        {
+            await _signInManager.SignOutAsync();
+            return RedirectToAction(nameof(Index), "Home");
+        }
+
+
+        // Existing actions
         public IActionResult Privacy()
         {
             return View();

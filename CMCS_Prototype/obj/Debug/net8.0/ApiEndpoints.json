@@ -1,1 +1,38 @@
-[]
+[
+  {
+    "ContainingType": "CMCS_Prototype.Controllers.Api.ClaimsApiController",
+    "Method": "AutoApprove",
+    "RelativePath": "api/ClaimsApi/{id}/auto-approve",
+    "HttpMethod": "POST",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "id",
+        "Type": "System.Int32",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "CMCS_Prototype.Controllers.Api.ClaimsApiController",
+    "Method": "GetPendingClaims",
+    "RelativePath": "api/ClaimsApi/pending",
+    "HttpMethod": "GET",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [],
+    "ReturnTypes": [
+      {
+        "Type": "System.Collections.Generic.IEnumerable\u00601[[CMCS_Prototype.Models.ClaimDTO, CMCS_Prototype, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null]]",
+        "MediaTypes": [
+          "text/plain",
+          "application/json",
+          "text/json"
+        ],
+        "StatusCode": 200
+      }
+    ]
+  }
+]

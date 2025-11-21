@@ -1,11 +1,14 @@
 ﻿using CMCS_Prototype.Models;
+using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 using System.Collections.Generic;
 using System.Linq;
 
 namespace CMCS_Prototype.Data
 {
-    public class CMCSDbContext : DbContext
+    // The Identity framework uses the primary key type (int) defined here for all its tables (including Roles and UserRoles)
+    public class CMCSDbContext : IdentityDbContext<User, IdentityRole<int>, int>
     {
         // 1. Application's main constructor (used when running the app)
         public CMCSDbContext(DbContextOptions<CMCSDbContext> options) : base(options)
@@ -13,14 +16,15 @@ namespace CMCS_Prototype.Data
         }
 
         // 2. CRITICAL FIX: Protected constructor for Moq/Unit Testing
-        // This allows the Moq proxying framework (Castle.Core) to instantiate a mock object.
         protected CMCSDbContext() : base()
         {
         }
 
+        // This DbSet is used for manual logging, not part of Identity
+        public DbSet<ApprovalHistory> ApprovalHistory { get; set; } = null!;
+
         // --- Database Tables (DbSets) ---
         // All DbSets must be 'virtual' for Moq to override them
-        public virtual DbSet<User> Users { get; set; } = null!;
         public virtual DbSet<Lecturer> Lecturers { get; set; } = null!;
         public virtual DbSet<AcademicManager> AcademicManagers { get; set; } = null!;
         public virtual DbSet<Coordinator> ProgrammeCoordinators { get; set; } = null!;
@@ -30,111 +34,202 @@ namespace CMCS_Prototype.Data
 
 
         // --- Model Configuration (Fluent API for inheritance/keys) ---
-        protected override void OnModelCreating(ModelBuilder modelBuilder)
+        protected override void OnModelCreating(ModelBuilder builder)
         {
-            base.OnModelCreating(modelBuilder);
+            base.OnModelCreating(builder);
 
-            modelBuilder.Entity<Lecturer>()
+            // Ensure Identity tables use the correct int keys
+            builder.Entity<IdentityUserRole<int>>().ToTable("AspNetUserRoles");
+            builder.Entity<IdentityRole<int>>().ToTable("AspNetRoles");
+            // ... (Other Identity configurations if needed)
+
+            builder.Entity<Lecturer>()
                 .Property(l => l.ContractorNumber)
                 .IsRequired();
 
-            modelBuilder.Entity<Claim>()
+            builder.Entity<Claim>()
                 .HasMany(c => c.ClaimLineItems)
                 .WithOne(li => li.Claim)
-                .HasForeignKey(li => li.ClaimID)
+                .HasForeignKey(li => li.ClaimId)
                 .IsRequired();
 
-            modelBuilder.Entity<Claim>()
+            builder.Entity<Claim>()
                 .HasMany(c => c.SupportingDocuments)
                 .WithOne(d => d.Claim)
                 .HasForeignKey(d => d.ClaimID)
                 .IsRequired();
+
         }
 
         // --- Database Seeding Method ---
         public static void SeedData(CMCSDbContext context)
         {
-            if (context.Users.Any())
+            // IMPORTANT: If you change the seeding logic, you might need to delete 
+            // your current SQLite file and run the application to re-seed the database.
+
+            // Allow re-seeding if the main user doesn't exist to ensure the new password is set
+            if (context.Users.Any(u => u.Email == "lecturer@cmcs.edu"))
             {
-                return; // DB has been seeded
+                // If users exist, we must force a delete/recreate process to apply the new password.
+                // Since we can't delete the DB here, we'll proceed with the assumption
+                // the existing data is either wrong or needs to be re-hashed.
+                // For a reliable fix, you MUST delete your current CMCS_Prototype.db file (or drop the database)
+                // and then run the application again to trigger the seeding below.
             }
 
-            const string hashedPasswordPlaceholder = "Pass123";
+            var hasher = new Microsoft.AspNetCore.Identity.PasswordHasher<User>();
 
-            // 1. Create Lecturer User
-            var lecturerUser = new Lecturer
+            // =========================================================================
+            // 1. ROLE CREATION (NEW)
+            // =========================================================================
+            if (!context.Roles.Any())
             {
-                Email = "lecturer@cmcs.edu",
-                PasswordHash = hashedPasswordPlaceholder,
-                UserType = "Lecturer",
-                Name = "L. Thompson",
-                ContractorNumber = "CONT-001"
-            };
+                context.Roles.AddRange(
 
-            // 2. Create Coordinator User
-            var coordinatorUser = new Coordinator
+                    new IdentityRole<int> { Id = 1, Name = "Lecturer", NormalizedName = "LECTURER" },
+                    new IdentityRole<int> { Id = 2, Name = "Coordinator", NormalizedName = "COORDINATOR" },
+                    new IdentityRole<int> { Id = 3, Name = "Manager", NormalizedName = "MANAGER" }, 
+                    new IdentityRole<int> { Id = 4, Name = "HR", NormalizedName = "HR" }
+                );
+                context.SaveChanges();
+            }
+
+            // =========================================================================
+            // 2. USER CREATION
+            // =========================================================================
+            // Check again if users exist by a known email to prevent duplicates
+            if (!context.Users.Any(u => u.Email == "lecturer@cmcs.edu"))
             {
-                Email = "coordinator@cmcs.edu",
-                PasswordHash = hashedPasswordPlaceholder,
-                UserType = "Coordinator",
-                Name = "C. Smith"
-            };
+                // Create Users
+                var lecturerUser = new Lecturer
+                {
+                    Id = 1, // Manually assign IDs for predictable seeding
+                    UserName = "lecturer@cmcs.edu",
+                    Email = "lecturer@cmcs.edu",
+                    EmailConfirmed = true,
+                    Name = "L. Thompson",
+                    ContractorNumber = "CONT-001",
+                    DefaultHourlyRate = 150.00m,
+                    NormalizedEmail = "LECTURER@CMCS.EDU",
+                    NormalizedUserName = "LECTURER@CMCS.EDU",
+                    SecurityStamp = System.Guid.NewGuid().ToString() // Required
+                };
+                // FIX: Setting password to "password"
+                lecturerUser.PasswordHash = hasher.HashPassword(lecturerUser, "password");
 
-            // 3. Create Manager User
-            var managerUser = new AcademicManager
+                var coordinatorUser = new Coordinator
+                {
+                    Id = 2,
+                    UserName = "coordinator@cmcs.edu",
+                    Email = "coordinator@cmcs.edu",
+                    EmailConfirmed = true,
+                    Name = "C. Smith",
+                    NormalizedEmail = "COORDINATOR@CMCS.EDU",
+                    NormalizedUserName = "COORDINATOR@CMCS.EDU",
+                    SecurityStamp = System.Guid.NewGuid().ToString()
+                };
+                // FIX: Setting password to "password"
+                coordinatorUser.PasswordHash = hasher.HashPassword(coordinatorUser, "password");
+
+                var managerUser = new AcademicManager
+                {
+                    Id = 3,
+                    UserName = "manager@cmcs.edu",
+                    Email = "manager@cmcs.edu",
+                    EmailConfirmed = true,
+                    Name = "M. Jones",
+                    NormalizedEmail = "MANAGER@CMCS.EDU",
+                    NormalizedUserName = "MANAGER@CMCS.EDU",
+                    SecurityStamp = System.Guid.NewGuid().ToString()
+                };
+                // FIX: Setting password to "password"
+                managerUser.PasswordHash = hasher.HashPassword(managerUser, "password");
+
+
+                var hrUser = new User // Use the base 'User' class if there is no special 'HR' model
+                {
+                    Id = 4, // Next sequential ID
+                    UserName = "hr@cmcs.edu", // Use a unique test email
+                    Email = "hr@cmcs.edu",
+                    EmailConfirmed = true,
+                    Name = "H. Admin",
+                    NormalizedEmail = "HR@CMCS.EDU",
+                    NormalizedUserName = "HR@CMCS.EDU",
+                    SecurityStamp = System.Guid.NewGuid().ToString()
+                };
+                // FIX: Setting password to "password"
+                hrUser.PasswordHash = hasher.HashPassword(hrUser, "password");
+
+                // Update the AddRange call
+                context.Users.AddRange(lecturerUser, coordinatorUser, managerUser, hrUser);
+                context.SaveChanges(); // Save users to make sure IDs are committed
+
+
+                // =========================================================================
+                // 3. ROLE ASSIGNMENT (NEW - Creates the AspNetUserRoles entries)
+                // We use the manually assigned IDs 1, 2, 3 for both users and roles.
+                // =========================================================================
+
+                // Lecturer (ID 1) gets Lecturer Role (ID 1)
+                context.UserRoles.Add(new IdentityUserRole<int> { UserId = 1, RoleId = 1 });
+
+                // Coordinator (ID 2) gets Coordinator Role (ID 2)
+                context.UserRoles.Add(new IdentityUserRole<int> { UserId = 2, RoleId = 2 });
+
+                // Manager (ID 3) gets Manager Role (ID 3)
+                context.UserRoles.Add(new IdentityUserRole<int> { UserId = 3, RoleId = 3 });
+
+                context.UserRoles.Add(new IdentityUserRole<int> { UserId = 4, RoleId = 4 }); // Use ID 4 for both
+
+                context.SaveChanges();
+            }
+
+
+            // =========================================================================
+            // 4. CLAIM CREATION
+            // =========================================================================
+            if (!context.Claims.Any())
             {
-                Email = "manager@cmcs.edu",
-                PasswordHash = hashedPasswordPlaceholder,
-                UserType = "Manager",
-                Name = "M. Jones"
-            };
+                // Get Lecturer ID (which is 1)
+                var lecturerId = context.Users.OfType<Lecturer>().First(u => u.Email == "lecturer@cmcs.edu").Id;
 
-            context.Users.Add(lecturerUser);
-            context.Users.Add(coordinatorUser);
-            context.Users.Add(managerUser);
+                // 4. Create Sample Claim for the Lecturer
+                var sampleClaim = new Claim
+                {
+                    LecturerID = lecturerId,
+                    Status = "Pending",
+                    TotalHours = 5.0m,
+                    RatePerHour = 150.00m,
+                    TotalAmount = 750.00m,
+                    DateSubmitted = System.DateTime.Now,
+                    ClaimNumber = "CMCS-0001"
+                };
 
-            // Save the users/roles first to get their IDs
-            context.SaveChanges();
+                // 5. Create Sample Line Item for the Claim
+                var lineItem = new ClaimLineItem
+                {
+                    // ClaimID will be set automatically on save
+                    DateOfActivity = System.DateTime.Now.AddDays(-5),
+                    Hours = 5.0m,
+                    RatePerHour = 150.00m,
+                    ActivityDescription = "Lecture prep for Module X"
+                };
+                sampleClaim.ClaimLineItems = new List<ClaimLineItem> { lineItem };
 
-            // 4. Create Sample Claim for the Lecturer
-            var sampleClaim = new Claim
-            {
-                LecturerID = lecturerUser.UserID,
-                Status = "Pending",
-                TotalHours = 5.0m,
-                RatePerHour = 150.00m,
-                TotalAmount = 750.00m,
-                DateSubmitted = System.DateTime.Now,
-                ClaimNumber = "CMCS-0001"
-            };
+                // 6. Create a Sample Supporting Document Placeholder
+                var document = new SupportingDocument
+                {
+                    // ClaimID will be set automatically on save
+                    FileName = "InitialContract_LThompson.pdf",
+                    MimeType = "application/pdf",
+                    FileContent = new byte[] { 0x01, 0x02, 0x03, 0x04 }
+                };
+                sampleClaim.SupportingDocuments = new List<SupportingDocument> { document };
 
-            context.Claims.Add(sampleClaim);
-            context.SaveChanges();
 
-            // 5. Create Sample Line Item for the Claim
-            var lineItem = new ClaimLineItem
-            {
-                ClaimID = sampleClaim.ClaimID,
-                DateOfActivity = System.DateTime.Now.AddDays(-5),
-                Hours = 5.0m,
-                RatePerHour = 150.00m,
-                ActivityDescription = "Lecture prep for Module X"
-            };
-
-            context.ClaimLineItems.Add(lineItem);
-
-            // 6. Create a Sample Supporting Document Placeholder
-            var document = new SupportingDocument
-            {
-                ClaimID = sampleClaim.ClaimID,
-                FileName = "InitialContract_LThompson.pdf",
-                MimeType = "application/pdf",
-                FileContent = new byte[] { 0x01, 0x02, 0x03, 0x04 }
-            };
-
-            context.SupportingDocuments.Add(document);
-
-            context.SaveChanges();
+                context.Claims.Add(sampleClaim);
+                context.SaveChanges();
+            }
         }
     }
 }
